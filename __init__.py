@@ -32,11 +32,6 @@ class ExampleExtensionProperties(bpy.types.PropertyGroup):
         description='Include this extension in the exported glTF file.',
         default=True
         )
-    float_property: bpy.props.FloatProperty(
-        name='Sample FloatProperty',
-        description='This is an example of a FloatProperty used by a UserExtension.',
-        default=1.0
-        )
 
 def register():
     bpy.utils.register_class(ExampleExtensionProperties)
@@ -98,9 +93,6 @@ class GLTF_PT_UserExtensionPanel(bpy.types.Panel):
         box = layout.box()
         box.label(text=glTF_extension_name)
 
-        props = bpy.context.scene.ExampleExtensionProperties
-        layout.prop(props, 'float_property', text="Some float value")
-
 
 class glTF2ExportUserExtension:
 
@@ -121,19 +113,9 @@ class glTF2ExportUserExtension:
         
         gltf2_image.buffer_view.data = output.getbuffer().tobytes()[128:]
         gltf2_image.mime_type = "image/dds"
-        gltf2_image.extensions["EXT_voyage_exporter"] = self.Extension(
-            name="EXT_voyage_exporter",
+        gltf2_image.extensions[glTF_extension_name] = self.Extension(
+            name=glTF_extension_name,
             extension={"width": preconverted_image.width, "height": preconverted_image.height, "format": "BGRA32"},
             required=True
         )
 
-
-    def gather_node_hook(self, gltf2_object, blender_object, export_settings):
-        if self.properties.enabled:
-            if gltf2_object.extensions is None:
-                gltf2_object.extensions = {}
-            gltf2_object.extensions[glTF_extension_name] = self.Extension(
-                name=glTF_extension_name,
-                extension={"float": self.properties.float_property},
-                required=extension_is_required
-            )
