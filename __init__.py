@@ -1,12 +1,11 @@
 import bpy
 import io
-import PIL
 
 bl_info = {
     "name": "Voyage GLTF extension",
     "category": "Generic",
     "version": (1, 0, 0),
-    "blender": (2, 80, 0),
+    "blender": (3, 4, 0),
     'location': 'File > Export > glTF 2.0',
     'description': 'Encode textures in GPU ready formats inside GLTF Binary files. Requires PIL.',
     'tracker_url': "https://github.com/voyage-vr/blender-glb-extension-gpu-formats",  # Replace with your issue tracker
@@ -33,7 +32,21 @@ class ExampleExtensionProperties(bpy.types.PropertyGroup):
         default=True
         )
 
+def _install_wand() -> None:
+    import ensurepip
+    ensurepip.bootstrap()
+    from pip import _internal
+    _internal.main(['install', 'pip', 'setuptools', 'wheel', '-U', '--user'])
+    _internal.main(['install', 'wand', '--user'])
+
+def _install_wand_if_not_exist() -> None:
+    try:
+        from wand.image import Image
+    except ImportError:
+        _install_wand()
+
 def register():
+    _install_wand_if_not_exist()
     bpy.utils.register_class(ExampleExtensionProperties)
     bpy.types.Scene.ExampleExtensionProperties = bpy.props.PointerProperty(type=ExampleExtensionProperties)
 
@@ -57,7 +70,6 @@ def unregister_panel():
         bpy.utils.unregister_class(GLTF_PT_UserExtensionPanel)
     except Exception:
         pass
-
 
 def unregister():
     unregister_panel()
@@ -96,26 +108,34 @@ class GLTF_PT_UserExtensionPanel(bpy.types.Panel):
 
 class glTF2ExportUserExtension:
 
+    
     def __init__(self):
         # We need to wait until we create the gltf2UserExtension to import the gltf2 modules
         # Otherwise, it may fail because the gltf2 may not be loaded yet
         from io_scene_gltf2.io.com.gltf2_io_extensions import Extension
         self.Extension = Extension
         self.properties = bpy.context.scene.ExampleExtensionProperties
+        
 
     def gather_image_hook(self, gltf2_image, blender_shader_sockets, export_settings):
         print(f'Texture Name = {gltf2_image.name}')
         print(f'Texture URI = {gltf2_image.uri}')
-        byteData = io.BytesIO(gltf2_image.buffer_view.data)
-        output = io.BytesIO()
-        preconverted_image = PIL.Image.open(byteData)
-        preconverted_image.convert('RGBA').save(output, format="DDS")
         
-        gltf2_image.buffer_view.data = output.getbuffer().tobytes()[128:]
-        gltf2_image.mime_type = "image/dds"
-        gltf2_image.extensions[glTF_extension_name] = self.Extension(
-            name=glTF_extension_name,
-            extension={"width": preconverted_image.width, "height": preconverted_image.height, "format": "BGRA32"},
-            required=True
-        )
+        from wand.image import Image
+        with Image(blob=gltf2_image.buffer_view.data) as img:
+            img.format = "dds"
+            img.compression = "dxt5"
+            img.alpha_channel = True
+
+            output = io.BytesIO()
+            img.save(file=output)
+
+            gltf2_image.buffer_view.data = output.getbuffer().tobytes()[128:]
+
+            gltf2_image.mime_type = "image/dds"
+            gltf2_image.extensions[glTF_extension_name] = self.Extension(
+                name=glTF_extension_name,
+                extension={"width": img.width, "height": img.height, "format": "DXT5"},
+                required=True
+            )
 
