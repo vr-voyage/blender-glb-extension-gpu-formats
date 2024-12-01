@@ -66,18 +66,17 @@ class glTF2ExportUserExtension:
     def gather_image_hook(self, gltf2_image, blender_shader_sockets, export_settings):
         print(f'Texture Name = {gltf2_image.name}')
         print(f'Texture URI = {gltf2_image.uri}')
-        
-        use_dxt5 = self.properties.export_as_dxt5
+        print(self.properties.export_as_dxt5)
 
         width, height, converted_data = voyage_texture_converter.convert_image_content_in(
             gltf2_image.buffer_view.data,
-            use_dxt5)
+            self.properties.export_as_dxt5)
         gltf2_image.buffer_view.data = converted_data
 
         gltf2_image.mime_type = "image/dds"
         gltf2_image.extensions[glTF_extension_name] = self.Extension(
             name=glTF_extension_name,
-            extension={"width": width, "height": height, "format": use_dxt5 if "DXT5" else "BC7" },
+            extension={"width": width, "height": height, "format": "DXT5" if self.properties.export_as_dxt5 else "BC7" },
             required=True
         )
 
