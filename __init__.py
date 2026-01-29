@@ -4,7 +4,7 @@ from . import voyage_texture_converter
 bl_info = {
     "name": "Voyage GLTF extension",
     "category": "Generic",
-    "version": (1, 0, 1),
+    "version": (1, 0, 2),
     "blender": (4, 2, 0),
     'location': 'File > Export > glTF 2.0',
     'description': 'Encode textures in GPU ready formats inside GLTF Binary files.',
