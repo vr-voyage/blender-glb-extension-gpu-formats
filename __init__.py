@@ -37,8 +37,7 @@ class VoyageGltfExtensionProperties(bpy.types.PropertyGroup):
         description="Select a GPU friendly compression format",
         items=[
             ('DXT5', "DXT5", "Popular format, Adreno compatible, known as BC3"),
-            ('BC7', "BC7", "Best compression format but PC only"),
-            ('RGBA8', "RGBA8", "Literally zero compression. Avoid this one"),
+            ('BC7', "BC7", "Best compression format but PC only")
         ],
         default='BC7')
 
