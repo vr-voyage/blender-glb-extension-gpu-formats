@@ -37,7 +37,8 @@ class VoyageGltfExtensionProperties(bpy.types.PropertyGroup):
         description="Select a GPU friendly compression format",
         items=[
             ('DXT5', "DXT5", "Popular format, Adreno compatible, known as BC3"),
-            ('BC7', "BC7", "Best compression format but PC only")
+            ('BC7', "BC7", "Best compression format but PC only"),
+            ('RGBA8', "RGBA8", "Literally zero compression. Avoid this one"),
         ],
         default='BC7')
 
@@ -88,21 +89,24 @@ class glTF2ExportUserExtension:
         self.properties = bpy.context.scene.VoyageGltfExtensionProperties
         
     def gather_image_hook(self, *args):
+        if not self.properties.enabled:
+            return
         gltf2_image = args[0]
-
         print(f'Texture Name = {gltf2_image.name}')
         print(f'Texture URI = {gltf2_image.uri}')
-        print(self.properties.compression_format)
+        
 
         width, height, converted_data, compression_format = voyage_texture_converter.convert_image_content_in(
             gltf2_image.buffer_view.data,
             self.properties.compression_format)
         gltf2_image.buffer_view.data = converted_data
 
-        gltf2_image.mime_type = "image/dds"
+        print(str(compression_format))
+
+        gltf2_image.mime_type = "image/raw"
         gltf2_image.extensions[glTF_extension_name] = self.Extension(
             name=glTF_extension_name,
-            extension={"width": width, "height": height, "format": self.properties.compression_format },
+            extension={"width": width, "height": height, "format": str(compression_format) },
             required=True
         )
 
